@@ -91,9 +91,12 @@ Quill.prototype.drawNote = function(x, y, fr) {
  * 画 音符头
  * @param 横坐标，纵坐标
  */
-Quill.prototype.drawNoteHead = function(x, y) {
+Quill.prototype.drawNoteHead = function(x, y, fr) {
 	this.c.beginPath();
 	var note = img_objs.noteHead;
+	if (fr <= 2) {
+		note = img_objs.noteHead2;
+	}
 	/* 将图片转成合适的尺寸 */
 	w = note.width/2.3;
 	h = note.height/2;
@@ -124,39 +127,42 @@ Quill.prototype.drawNoteTails = function(x, y, fr) {
 };
 /* *
  * 画 音符尾间连线
- * @param 坐标xy
+ * @param 坐标和时值的数组 [ [x, y, fr], [x2, y2, fr2], ... ]
  */
-Quill.prototype.drawLinkLine = function(xys) {
-	// 第一个和最后一个
-	var first = xys[0];
-	var last = xys[xys.length-1];
-	// 正切值/2 （除以二是为了让倾斜度小一点，利于美观）
-	var tan = (first[1]-last[1]) / (last[0]-first[0]) /2;
-
+Quill.prototype.drawLinkLine = function(xyf) {
+	// 第一个
+	var first = xyf[0];
 	// 画竖线 第一个音符的符干
 	var x = first[0]+5;
 	var y = first[1];
 	var y2 = y - CONT.NOTEBODY_HEIGHT;
 	this.drawLink2point(x, y, x, y2, 1, CONT.LINE_COLOR);
+	if (xyf.length == 1) return;
+
+	// 最后一个
+	var last = xyf[xyf.length-1];
+	// 正切值/2 （除以二是为了让倾斜度小一点，利于美观）
+	var tan = (first[1]-last[1]) / (last[0]-first[0]) /2;
+
 
 	var lastX, lastY, lastY2, // 上一次遍历的x, y, y2
 		lastCount, count, endXOffset, endYOffset;	 
-	for (var i = 1; i < xys.length; i++) {
+	for (var i = 1; i < xyf.length; i++) {
 		lastX = x;
 		lastY = y;
 		lastY2 = y2; // 前一个音符最后一根相连横线的y坐标
 		
 		/* 画竖线 符干 */
-		x = xys[i][0]+5;
-		y = xys[i][1];
-		y2 = xys[0][1] - CONT.NOTEBODY_HEIGHT - (xys[i][0]-xys[0][0])*tan;
+		x = xyf[i][0]+5;
+		y = xyf[i][1];
+		y2 = xyf[0][1] - CONT.NOTEBODY_HEIGHT - (xyf[i][0]-xyf[0][0])*tan;
 		this.drawLink2point(x, y, x, y2, 1, CONT.LINE_COLOR);
 
 		/* 画横线 尾间连线  */
-		// lastCount：前一个音符有几条横线; xys[i-1][2]：前一个音符的fr
-		lastCount = Math.log(xys[i-1][2]/8)/Math.log(2) + 1;
-		// count：当前音符有几条横线; xys[i][2]：当前音符的fr
-		count = Math.log(xys[i][2]/8)/Math.log(2) + 1;
+		// lastCount：前一个音符有几条横线; xyf[i-1][2]：前一个音符的fr
+		lastCount = Math.log(xyf[i-1][2]/8)/Math.log(2) + 1;
+		// count：当前音符有几条横线; xyf[i][2]：当前音符的fr
+		count = Math.log(xyf[i][2]/8)/Math.log(2) + 1;
 		// sub: 非最后一个音符：前一个音符多出来的横线；反之：后一个音符多出来的横线
 		var sub = lastCount-count;
 

@@ -8,20 +8,6 @@ var paperHeight = paper.clientHeight;
 var inputTs = document.getElementById('inputTs');
 var inputArea = document.getElementById('inputArea');
 
-var img_objs = {
-	note1: new Image(),
-	note2: new Image(),
-	note4: new Image(),
-	note8: new Image(),
-	clefG: new Image(),
-	noteHead: new Image(),
-	note8Tail: new Image(),
-	sharp: new Image(),
-	flats: new Image(),
-};
-
-
-
 // ========================渲染方法 start======================
 function parseAndRenderScore(s) {
 	var qu = new Quill(ctx);
@@ -95,35 +81,39 @@ function parseAndRenderScore(s) {
 			for (var l = 0; l < lineCont; l++, firstPlace++) 
 				qu.drawline(x-CONT.TSG_SPACE/2, y-firstPlace*CONT.LINE_SPACE, CONT.TSG_SPACE, 1, CONT.LINE_SPACE, CONT.LINE_WIDTH, CONT.LINE_COLOR);
 		}
-		/* 对于时值 未满 单位音符时值（四分音符）的音符（如八分音符 ♫♪）*/
-		if (stepLength < 1/CONT.UNIT_NOTE) {
-			// 画音符头
-			qu.drawNoteHead(x, y-maPlace*CONT.LINE_SPACE);
 
-			tempXYFrs.push([x, y-maPlace*CONT.LINE_SPACE, fr]);
-			// 时值自增，满单位音符的时长（最后一个未满音符） 则清零
-			tempHalf += stepLength;
-			if ( tempHalf == 1/CONT.UNIT_NOTE ) {
-				/* 音符尾间连线，这是真正难且特殊的部分 */
+		// 如果在画 时值 >= 单位音符（四分音符）的音符 之前仍有没画完符尾的音符，就画符尾
+		if (stepLength >= 1/CONT.UNIT_NOTE) {
+			if (tempXYFrs.length == 1) {
+				qu.drawNoteTails(tempXYFrs[0][0], tempXYFrs[0][1], tempXYFrs[0][2]);
+			} else if (tempXYFrs.length > 1) {
 				qu.drawLinkLine(tempXYFrs);
-				tempHalf = 0;
-				tempXYFrs = [];
 			}
-		} 
+			tempXYFrs = [];
+			tempHalf = 0;
+		}
+
+		// 画音符头
+		qu.drawNoteHead(x, y-maPlace*CONT.LINE_SPACE, fr);
+		// 时值自增
+		tempHalf += stepLength;
+		tempXYFrs.push([x, y-maPlace*CONT.LINE_SPACE, fr]);
+
+		/* 对于时值 < 单位音符时值（四分音符）的音符（如八分音符 ♫♪）*/
+		if (stepLength < 1/CONT.UNIT_NOTE) {
+			// 满单位音符的时长（最后一个未满音符） 则清零
+			if ( tempHalf == 1/CONT.UNIT_NOTE ) {
+				// 音符尾间连线，这是真正难且特殊的部分
+				qu.drawLinkLine(tempXYFrs);
+				tempXYFrs = [];
+				tempHalf = 0;
+			}
+		}
 		/* 对于时值 >= 单位音符（四分音符）的音符 */
 		else {
-			qu.drawNote(x, y-maPlace*CONT.LINE_SPACE, fr);
-			// 如果之前仍有没画完符尾的音符，就画单个符尾
-			if (tempXYFrs.length != 0) {
-				if (tempXYFrs.length == 1) 
-					for (var j = 0; j < tempXYFrs.length; j++) 
-						qu.drawNoteTails(tempXYFrs[j][0], tempXYFrs[j][1], tempXYFrs[j][2]);
-				else
-					qu.drawLinkLine(tempXYFrs);
-				
-				tempXYFrs = [];
-				tempHalf = 0;
-			}
+			qu.drawLinkLine(tempXYFrs);
+			tempXYFrs = [];
+			tempHalf = 0;
 		}
 
 		/* 画符点 */
@@ -223,7 +213,18 @@ function getMaPlaceForG(ma) { // 如：ma = 'f5#'
 
 // ========================渲染方法 end========================
 
-
+var img_objs = {
+	note1: new Image(),
+	note2: new Image(),
+	note4: new Image(),
+	note8: new Image(),
+	clefG: new Image(),
+	noteHead: new Image(),
+	noteHead2: new Image(),
+	note8Tail: new Image(),
+	sharp: new Image(),
+	flats: new Image(),
+};
 
 /* *
  * 初始化音符图片
@@ -247,7 +248,10 @@ function initImgs(callback) {
 	notes.push(img_objs.clefG);
 
 	img_objs.noteHead.src = SRC.NOTE_HEAD;
-	notes.push(img_objs.clefG);
+	notes.push(img_objs.noteHead);
+
+	img_objs.noteHead2.src = SRC.NOTE_HEAD2;
+	notes.push(img_objs.noteHead2);
 
 	img_objs.note8Tail.src = SRC.NOTE8_TAIL;
 	notes.push(img_objs.note8Tail);
