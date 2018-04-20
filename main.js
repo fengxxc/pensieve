@@ -8,6 +8,8 @@ var paperHeight = paper.clientHeight;
 var inputTs = document.getElementById('inputTs');
 var inputArea = document.getElementById('inputArea');
 
+var checkClef = document.getElementsByClassName('checkClef');
+
 // ========================渲染方法 start======================
 function parseAndRenderScore(s) {
 	var qu = new Quill(ctx);
@@ -16,6 +18,7 @@ function parseAndRenderScore(s) {
 	// 当前行x坐标，初始在第一行最左
 	var x_cur = CONT.LEFT_PADDING;
 
+	var clefArr = s.clef;
 	var timeBar = parseInt(s.timeSignature.split('/')[0]); // 每小节有几拍
 	var timeBeat = parseInt(s.timeSignature.split('/')[1]); // 几分音符为一拍
 	var notes = s.notes; // 乐谱正文
@@ -31,7 +34,7 @@ function parseAndRenderScore(s) {
 
 		/* 第一个音符 或 一行超出 就换行并渲染五线谱 */
 		if (i == 0 || x_cur > (paperWidth-CONT.LEFT_PADDING) ) {
-			xyEnter();
+			xyEnter(clefArr[0]); // TODO
 		}
 		
 		var noteInfo = parseNoteGroupCode(notes[i]);
@@ -43,14 +46,12 @@ function parseAndRenderScore(s) {
 		var maGroup = noteInfo.musicalAlphabets;
 		/* 4. 有符点吗？*/
 		var hasPoint = noteInfo.hasPoint;
-		/* 5. 升降 1 or -1 or 0 */
-		var transp = noteInfo.transposition;
 
 		// 加拍数
 		tempBar += (stepLength * timeBeat); 
 
 		/* 渲染一组最小单位块音符 */
-		renderStep(x_cur, y_def, fr, stepLength, maGroup, hasPoint, transp);
+		renderStep(x_cur, y_def, fr, stepLength, maGroup, hasPoint, clefArr);
 
 		/* x右移距离，主要根据音符时值fr而定 */
 		x_cur += CONT.TSG_SPACE * (stepLength * CONT.UNIT_NOTE);
@@ -65,13 +66,13 @@ function parseAndRenderScore(s) {
 
 	/* *
 	 * 渲染一音符组
-	 * @param x坐标，y坐标，是几分音符，1/时值长度，音符组音名（数组），是否有符点，升降
+	 * @param x坐标，y坐标，是几分音符，1/时值长度，音符组音名（数组），是否有符点，谱表类型数组
 	 */
-	function renderStep(x, y, fr, stepLength, maGroup, hasPoint, transp) {
+	function renderStep(x, y, fr, stepLength, maGroup, hasPoint, clefArr) {
 		var maPlaceTop = null;
 		var maPlaceBot = null;
 		for (var i = 0; i < maGroup.length; i++) {
-			var maPlace = getMaPlace(maGroup[i], CONT.CLEF_G); // 在G谱表上的位置
+			var maPlace = getMaPlace(maGroup[i], clefArr[0]); // 在G谱表上的位置 TODO
 
 			/* (〃'▽'〃) 要渲染音符了 */
 			// 判断是否要加线
@@ -88,8 +89,9 @@ function parseAndRenderScore(s) {
 			qu.drawNoteHead(x, y-maPlace*CONT.LINE_SPACE, fr);
 
 			/* 2.画升降符号 */
-			if (transp)
-				qu.drawTransp(x - CONT.NOTE_HEAD_WIDTH - 2, y-maPlace*CONT.LINE_SPACE, transp);
+			var transp = maGroup[i].match(new RegExp(KEY_MAP.sharp+'+$|'+KEY_MAP.flat+'+$')) || [null];
+			if (transp.length > 0)
+				qu.drawTransp(x - CONT.NOTE_HEAD_WIDTH - 2, y-maPlace*CONT.LINE_SPACE, transp[0]);
 		
 			/* 3.画符点 */
 			if (hasPoint) 
@@ -144,7 +146,7 @@ function parseAndRenderScore(s) {
 	/* *
 	 * 绘图坐标换行 并画下一行的五线谱
 	 */
-	function xyEnter() {
+	function xyEnter(clefType) {
 		y_def += CONT.ROW_SPACE;
 		x_cur = CONT.LEFT_PADDING;
 		qu.drawline(x_cur, y_def - CONT.LINE_SPACE*5, paperWidth-CONT.LEFT_PADDING*2, 5, CONT.LINE_SPACE, CONT.LINE_WIDTH, CONT.LINE_COLOR);
@@ -152,7 +154,7 @@ function parseAndRenderScore(s) {
 		qu.drawBarLine(x_cur, y_def - CONT.LINE_SPACE*5, CONT.LINE_WIDTH, CONT.LINE_COLOR);
 		x_cur += CONT.TSG_SPACE/2;
 		// 画 谱号
-		qu.drawClef(x_cur, y_def, CONT.CLEF_G, CONT.LINE_COLOR);
+		qu.drawClef(x_cur, y_def, clefType, CONT.LINE_COLOR);
 		x_cur += CONT.CLEF_SPACE;
 	}
 	
@@ -176,14 +178,12 @@ function parseNoteGroupCode(code) {
 	var pt = (''+fr).search(/\./) > 0;
 	var sl = getStepLengthByFr(fr);
 	var mas = code.slice(frArr? frArr.index+frArr[0].length : 0);
-	var tp =  code.match(new RegExp(KEY_MAP.sharp+'+$|'+KEY_MAP.flat+'+$')) || [null];
 	var maArr = mas.split(KEY_MAP.split.note);
 	return {
 		fraction: fr, 		 // 几分音符 string
 		hasPoint: pt,		 // 是否有符点 boolean
 		stepLength: sl, 	 // 在谱上的物理时值长度 number
 		musicalAlphabets: maArr, // 音名数组 array
-		transposition: tp[0] // 移调，升调1，降调-1，无0	
 	};
 }
 /* 
@@ -222,8 +222,9 @@ function getMaPlace(ma, type) { // 如：ma = 'f5#'
 
 	var ma1 = ma.slice(0, 1); // 'f'
 	var ma2 = parseInt( ma.slice(1).match(/^\d*/) ); // '5'
-	if (!ma1 || ! ma2) return 3;
-	var place = g_ma2sc[ma1][ma2];
+	var place = 0;
+	if (!ma1 || ! ma2) place = 3;
+	else place = g_ma2sc[ma1][ma2];
 	if (type == CONT.CLEF_F)
 		place += 6;
 	if (type == CONT.CLEF_C)
@@ -247,6 +248,8 @@ var img_objs = {
 	// note4: new Image(),
 	// note8: new Image(),
 	clefG: new Image(),
+	clefC: new Image(),
+	clefF: new Image(),
 	noteHead: new Image(),
 	noteHead2: new Image(),
 	note8Tail: new Image(),
@@ -275,6 +278,12 @@ function initImgs(callback) {
 
 	img_objs.clefG.src = SRC.CLEF_G;
 	notes.push(img_objs.clefG);
+
+	img_objs.clefC.src = SRC.CLEF_C;
+	notes.push(img_objs.clefC);
+
+	img_objs.clefF.src = SRC.CLEF_F;
+	notes.push(img_objs.clefF);
 
 	img_objs.noteHead.src = SRC.NOTE_HEAD;
 	notes.push(img_objs.noteHead);
@@ -321,6 +330,13 @@ function loadImgs(imgs, callback) {
  */
 function render() {
 	var score = {};
+	var checkedDom = [].filter.call(checkClef, function (checkDom) {
+		return checkDom.checked;
+	});
+	score.clef = [].map.call(checkedDom, function (checkedDom) {
+		return checkedDom.value;
+	});
+	
 	score.timeSignature = inputTs.value;
 	score.notes = parseInput(inputArea.value);
 	parseAndRenderScore(score);
@@ -337,8 +353,12 @@ function parseInput(val) {
 
 function main() {
 	initImgs(function () {
-		// 监听input事件
+		// 监听 乐谱正文输入框 input事件
 		inputArea.addEventListener('input', render);
+		// 监听 选择谱表复选框 change事件
+		[].map.call(checkClef, function (checkDom) {
+			checkDom.addEventListener('change', render);
+		});
 		render();
 	});
 }

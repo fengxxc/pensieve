@@ -38,6 +38,12 @@ var CONT = {
 	// G谱号中心点距顶部 与 G谱号高度的比值
 	CLEF_G_SPE: 0.64,
 
+	// F谱号中心点距顶部 与 F谱号高度的比值
+	CLEF_F_SPE: 0.857,
+
+	// C谱号中心点距顶部 与 C谱号高度的比值
+	CLEF_C_SPE: 0.769,
+
 	// 单位音符是四分音符
 	UNIT_NOTE: 4,
 
@@ -68,6 +74,8 @@ var SRC = {
 	// NOTE4: 'img/合适尺寸/四分音符.png',
 	// NOTE8: 'img/合适尺寸/八分音符.png',
 	CLEF_G: 'img/合适尺寸/G谱号.png',
+	CLEF_C: 'img/合适尺寸/C谱号.png',
+	CLEF_F: 'img/合适尺寸/F谱号.png',
 	NOTE_HEAD: 'img/合适尺寸/四分音符头.png',
 	NOTE_HEAD2: 'img/合适尺寸/二分音符头.png',
 	NOTE8_TAIL: 'img/合适尺寸/八分音符尾1.png',

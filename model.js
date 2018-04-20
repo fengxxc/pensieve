@@ -215,6 +215,22 @@ Quill.prototype.drawClef = function(x, y, type, color) {
 		h = img_objs.clefG.height;
 		this.c.drawImage(img_objs.clefG, x-w/2, _y-h*CONT.CLEF_G_SPE, w, h);
 	}
+	// C
+	if (type == CONT.CLEF_C) {
+		_y = y - CONT.LINE_SPACE*2;
+		/* 将图片转成合适的尺寸 */
+		w = img_objs.clefC.width;
+		h = img_objs.clefC.height;
+		this.c.drawImage(img_objs.clefC, x-w/2, _y-h*CONT.CLEF_C_SPE, w, h);
+	}
+	// F
+	if (type == CONT.CLEF_F) {
+		_y = y - CONT.LINE_SPACE*2;
+		/* 将图片转成合适的尺寸 */
+		w = img_objs.clefF.width;
+		h = img_objs.clefF.height;
+		this.c.drawImage(img_objs.clefF, x-w/2, _y-h*CONT.CLEF_F_SPE, w, h);
+	}
 
 	this.c.closePath();
 };
