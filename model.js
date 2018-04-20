@@ -127,11 +127,11 @@ Quill.prototype.drawNoteTails = function(x, y, fr) {
 };
 /* *
  * 画 音符 符干 和 尾间连线
- * @param 坐标和时值的数组 [ [x, y, fr], [x2, y2, fr2], ... ]
- * @param 符干是否朝上 Boolean；未传此参数则自动判断
+ * @param [ {x, baseY, yMax, yMin, fr}, {x2, baseY, yMax2, yMin2, fr2}, ... ]
+ * @param 符干符尾是否朝上 Boolean
  */
 Quill.prototype.drawStemTailLine = function(xyf, isUpward) {
-	isUpward = false;
+	// isUpward = false;
 	// 符干是否朝上参数 若未传，默认朝上
 	var isUp = isUpward !== undefined? isUpward : true;
 	var forward = isUp? 1 : -1;
@@ -192,6 +192,22 @@ Quill.prototype.drawStemTailLine = function(xyf, isUpward) {
 	shortLineStartX = x - CONT.NOTETAIL_SINGLE_LINE_LENGTH/2;
 	for (var m = 0; m < endSub; m++) 
 		this.drawLink2point(shortLineStartX, lastYEnd -= (shortLineStartX - lastX)*tan - CONT.NOTETAIL_LINKLINE_WIDTH*2*(m+1)*forward, x, lastYEnd - CONT.NOTETAIL_SINGLE_LINE_LENGTH/2*tan, CONT.NOTETAIL_LINKLINE_WIDTH, CONT.LINE_COLOR);
+};
+/* *
+ * 画 音符 符干 和 尾间连线 自动判断符干符尾朝向
+ * @param [ {x, baseY, yMax, yMin, fr}, {x2, baseY, yMax2, yMin2, fr2}, ... ]
+ * @param 符干是否朝上 Boolean
+ */
+Quill.prototype.drawStemTailLineAutoForward = function(XYFrs) {
+	if (XYFrs.length == 0) return;
+	var isUp = true;
+	var sum = 0;
+	var midY = XYFrs[0].baseY - 3*CONT.LINE_SPACE; // 五线谱中间线的y坐标
+	for (var i = 0; i < XYFrs.length; i++)
+		sum += XYFrs[i].yMax + XYFrs[i].yMin;
+	var avg = sum / (XYFrs.length*2);
+	if (avg < midY) isUp = false;
+	this.drawStemTailLine(XYFrs, isUp);
 };
 /* *
  * 画 谱号

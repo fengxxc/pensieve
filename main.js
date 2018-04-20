@@ -114,7 +114,7 @@ function parseAndRenderScore(s) {
 			if (tempXYFrs.length == 1) {
 				qu.drawNoteTails(tempXYFrs[0].x, tempXYFrs[0].yMin, tempXYFrs[0].fr);
 			} else if (tempXYFrs.length > 1) {
-				qu.drawStemTailLine(tempXYFrs);
+				qu.drawStemTailLineAutoForward(tempXYFrs);
 			}
 			tempXYFrs = [];
 			tempHalf = 0;
@@ -123,17 +123,17 @@ function parseAndRenderScore(s) {
 		tempHalf += stepLength;
 		var coordModel = {
 			x: x, 
-			yMax: y-maPlaceBot*CONT.LINE_SPACE, 
-			yMin: y-maPlaceTop*CONT.LINE_SPACE,
+			baseY: y,
+			yMax: getY(y, maPlaceBot),
+			yMin: getY(y, maPlaceTop),
 			fr: fr
 		};
-		// tempXYFrs.push([x, y-maPlaceTop*CONT.LINE_SPACE, fr]);
 		tempXYFrs.push(coordModel);
 		// 对于时值 < 单位音符时值（四分音符）的音符（如八分音符 ♫♪）
 		// && 对于时值 >= 单位音符（四分音符）的音符
 		// 画符尾连线
 		if ( !(stepLength < 1/CONT.UNIT_NOTE && tempHalf != 1/CONT.UNIT_NOTE) ) {
-			qu.drawStemTailLine(tempXYFrs);
+			qu.drawStemTailLineAutoForward(tempXYFrs);
 			tempXYFrs = [];
 			tempHalf = 0;
 		}
@@ -223,6 +223,14 @@ function getMaPlaceForG(ma) { // 如：ma = 'f5#'
 	var ma2 = parseInt( ma.slice(1).match(/^\d*/) ); // '5'
 	if (!ma1 || ! ma2) return 3;
 	return g_ma2sc[ma1][ma2]; // 5
+}
+/* *
+ * 根据基准y坐标 和音符位置 获得音符y坐标
+ * @param baseY 当前行下加一线的y坐标，初始在第负一行
+ * @param maplace 在五线谱上的位置
+ */
+function getY(baseY, maplace) {
+	return baseY - maplace*CONT.LINE_SPACE;
 }
 
 // ========================渲染方法 end========================
