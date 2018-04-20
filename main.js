@@ -112,7 +112,8 @@ function parseAndRenderScore(s) {
 		// 如果在画 时值 >= 单位音符（四分音符）的音符 之前仍有没画完符尾的音符，就画符尾
 		if (stepLength >= 1/CONT.UNIT_NOTE) {
 			if (tempXYFrs.length == 1) {
-				qu.drawNoteTails(tempXYFrs[0].x, tempXYFrs[0].yMin, tempXYFrs[0].fr);
+				// qu.drawNoteTails(tempXYFrs[0].x, tempXYFrs[0].yMin, tempXYFrs[0].fr);
+				qu.drawNoteTailsAutoForward(tempXYFrs[0].x, tempXYFrs[0].baseY, tempXYFrs[0].yMin, tempXYFrs[0].fr);
 			} else if (tempXYFrs.length > 1) {
 				qu.drawStemTailLineAutoForward(tempXYFrs);
 			}
@@ -237,13 +238,14 @@ function getY(baseY, maplace) {
 
 var img_objs = {
 	note1: new Image(),
-	note2: new Image(),
-	note4: new Image(),
-	note8: new Image(),
+	// note2: new Image(),
+	// note4: new Image(),
+	// note8: new Image(),
 	clefG: new Image(),
 	noteHead: new Image(),
 	noteHead2: new Image(),
 	note8Tail: new Image(),
+	note8TailRev: new Image(),
 	sharp: new Image(),
 	flats: new Image(),
 };
@@ -257,14 +259,14 @@ function initImgs(callback) {
 	img_objs.note1.src = SRC.NOTE1;
 	notes.push(img_objs.note1);
 
-	img_objs.note2.src = SRC.NOTE2;
-	notes.push(img_objs.note2);
+	// img_objs.note2.src = SRC.NOTE2;
+	// notes.push(img_objs.note2);
 
-	img_objs.note4.src = SRC.NOTE4;
-	notes.push(img_objs.note4);
+	// img_objs.note4.src = SRC.NOTE4;
+	// notes.push(img_objs.note4);
 
-	img_objs.note8.src = SRC.NOTE8;
-	notes.push(img_objs.note8);
+	// img_objs.note8.src = SRC.NOTE8;
+	// notes.push(img_objs.note8);
 
 	img_objs.clefG.src = SRC.CLEF_G;
 	notes.push(img_objs.clefG);
@@ -277,6 +279,9 @@ function initImgs(callback) {
 
 	img_objs.note8Tail.src = SRC.NOTE8_TAIL;
 	notes.push(img_objs.note8Tail);
+
+	img_objs.note8TailRev.src = SRC.NOTE8_TAIL_REV;
+	notes.push(img_objs.note8TailRev);
 
 	img_objs.sharp.src = SRC.SHARP;
 	notes.push(img_objs.sharp);

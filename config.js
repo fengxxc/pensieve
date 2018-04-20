@@ -63,13 +63,14 @@ var CONT = {
 /* 路径 */
 var SRC = {
 	NOTE1: 'img/合适尺寸/全音符.png',
-	NOTE2: 'img/合适尺寸/二分音符.png',
-	NOTE4: 'img/合适尺寸/四分音符.png',
-	NOTE8: 'img/合适尺寸/八分音符.png',
+	// NOTE2: 'img/合适尺寸/二分音符.png',
+	// NOTE4: 'img/合适尺寸/四分音符.png',
+	// NOTE8: 'img/合适尺寸/八分音符.png',
 	CLEF_G: 'img/合适尺寸/G谱号.png',
 	NOTE_HEAD: 'img/合适尺寸/四分音符头.png',
 	NOTE_HEAD2: 'img/合适尺寸/二分音符头.png',
 	NOTE8_TAIL: 'img/合适尺寸/八分音符尾1.png',
+	NOTE8_TAIL_REV: 'img/合适尺寸/八分音符尾2.png',
 	SHARP: 'img/合适尺寸/升调.png',
 	FLATS: 'img/合适尺寸/降调.png',
 };

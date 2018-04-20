@@ -53,41 +53,6 @@ Quill.prototype.drawFullPageLine = function(left, top, width, lineCont, lineSpac
 		this.drawline(left, t, width, lineCont, lineSpace, lineWidth, lineColor);
 };
 /* *
- * 画 音符
- * @param 横坐标，纵坐标，颜色，是几分音符
- */
-Quill.prototype.drawNote = function(x, y, fr) {
-	this.c.beginPath();
-	var w = 0, h = 0, note = null;
-	switch (parseInt(fr)) {
-		case 1: // 全音符
-			note = img_objs.note1;
-			break;
-		case 2: // 二分音符
-			note = img_objs.note2;
-			break;
-		case 4: // 四分音符
-			note = img_objs.note4;
-			break;
-		case 8: // 八分音符
-			note = img_objs.note8;
-			break;
-		case 16: // 十六音符
-			note = img_objs.note16;
-			break;
-		case 32: // 三十二音符
-			note = img_objs.note32;
-			break;
-	}
-
-	/* 将图片转成合适的尺寸 */
-	w = note.width/2.3;
-	h = note.height/2;
-
-	this.c.drawImage(note, x-w/2, y-h+CONT.LINE_SPACE/2, w, h);
-	this.c.closePath();
-};
-/* *
  * 画 音符头
  * @param 横坐标，纵坐标
  */
@@ -105,26 +70,54 @@ Quill.prototype.drawNoteHead = function(x, y, fr) {
 };
 /* *
  * 画 音符尾（单条）
- * @param 横坐标，纵坐标
+ * @param 横坐标
+ * @param 纵坐标
+ * @param 符干符尾是否朝上 Boolean
  */
-Quill.prototype.drawNoteTail = function(x, y) {
-	this.c.beginPath();
+Quill.prototype._drawNoteTail = function(x, y, isUpward) {
 	var note = img_objs.note8Tail;
-	/* 将图片转成合适的尺寸 */
-	w = note.width/2.3;
+	w = note.width/2.5;
 	h = note.height/2;
-	this.c.drawImage(note, x + CONT.NOTE_HEAD_WIDTH, y-h, w, h);
+	var oX = x + CONT.NOTE_HEAD_WIDTH;
+	var oY = y-h;
+	this.c.beginPath();
+	if (!isUpward) {
+		note = img_objs.note8TailRev;
+		oX = x - CONT.NOTE_HEAD_WIDTH;
+		oY = y;
+		console.log(note);
+	}
+	/* 将图片转成合适的尺寸 */
+	this.c.drawImage(note, oX, oY, w, h);
 	this.c.closePath();
 };
 /* *
  * 画 音符尾（多条，根据fr来判断）
  * @param 横坐标，纵坐标，是几分音符
  */
-Quill.prototype.drawNoteTails = function(x, y, fr) {
-	this.drawLink2point(x+CONT.NOTE_HEAD_WIDTH, y, x+CONT.NOTE_HEAD_WIDTH, y - CONT.NOTEBODY_HEIGHT, 1, CONT.LINE_COLOR);
+Quill.prototype.drawNoteTails = function(x, y, fr, isUpward) {
+	var forward = 1;
+	var startX = x + CONT.NOTE_HEAD_WIDTH;
+	var endY = y - CONT.NOTEBODY_HEIGHT;
+	if (!isUpward) {
+		startX = x - CONT.NOTE_HEAD_WIDTH;
+		endY = y + CONT.NOTEBODY_HEIGHT;
+		forward = -1;
+	}
+	this.drawLink2point(startX, y, startX, endY, 1, CONT.LINE_COLOR);
 	for (var k = 0, count = Math.log(fr/8)/Math.log(2)+1; k < count; k++) 
-		this.drawNoteTail(x, y + k*CONT.NOTETAIL_LINKLINE_WIDTH*3);
+		this._drawNoteTail(x, y + k*CONT.NOTETAIL_LINKLINE_WIDTH*3*forward, isUpward);
 };
+/* *
+ * 画 音符尾（多条，根据fr来判断） 自动判断符干符尾朝向
+ * @param 横坐标，纵坐标，是几分音符
+ */
+ Quill.prototype.drawNoteTailsAutoForward = function(x, baseY, y, fr) {
+ 	var midY = baseY - 3*CONT.LINE_SPACE; // 五线谱中间线的y坐标
+ 	var isUp = true;
+ 	if (y < midY) isUp = false;
+ 	this.drawNoteTails(x, y, fr, isUp);
+ };
 /* *
  * 画 音符 符干 和 尾间连线
  * @param [ {x, baseY, yMax, yMin, fr}, {x2, baseY, yMax2, yMin2, fr2}, ... ]
@@ -151,9 +144,8 @@ Quill.prototype.drawStemTailLine = function(xyf, isUpward) {
 	// 正切值的绝对值/2 （除以二是为了让倾斜度小一点，利于美观）
 	var tan = ( (first.yMax+first.yMin)/2 - (last.yMax+last.yMin)/2 ) / (last.x-first.x) /2;
 
-	var lastX, lastY, lastYEnd  // 上一次遍历的x, y, yEnd
-		, lastCount, count
-		, shortLineStartX, shortLineEndX;	 
+	var lastX, lastY, lastYEnd;  // 上一次遍历的x, y, yEnd
+	var lastCount, count, shortLineStartX, shortLineEndX;
 	for (var i = 1; i < xyf.length; i++) {
 		lastX = x;
 		lastY = y;
