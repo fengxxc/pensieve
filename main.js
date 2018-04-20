@@ -71,7 +71,7 @@ function parseAndRenderScore(s) {
 		var maPlaceTop = null;
 		var maPlaceBot = null;
 		for (var i = 0; i < maGroup.length; i++) {
-			var maPlace = getMaPlaceForG(maGroup[i]); // 在G谱表上的位置
+			var maPlace = getMaPlace(maGroup[i], CONT.CLEF_G); // 在G谱表上的位置
 
 			/* (〃'▽'〃) 要渲染音符了 */
 			// 判断是否要加线
@@ -206,7 +206,7 @@ function getStepLengthByFr(fr) {
  * 下加一线：0
  * 下加二线：-1
  */
-function getMaPlaceForG(ma) { // 如：ma = 'f5#'
+function getMaPlace(ma, type) { // 如：ma = 'f5#'
 
 	// G谱表音名与谱表位置的映射关系，如：C4就是c[4]
 	var g_ma2sc = {
@@ -223,7 +223,12 @@ function getMaPlaceForG(ma) { // 如：ma = 'f5#'
 	var ma1 = ma.slice(0, 1); // 'f'
 	var ma2 = parseInt( ma.slice(1).match(/^\d*/) ); // '5'
 	if (!ma1 || ! ma2) return 3;
-	return g_ma2sc[ma1][ma2]; // 5
+	var place = g_ma2sc[ma1][ma2];
+	if (type == CONT.CLEF_F)
+		place += 6;
+	if (type == CONT.CLEF_C)
+		place += 3;
+	return place; // 5
 }
 /* *
  * 根据基准y坐标 和音符位置 获得音符y坐标
