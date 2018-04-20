@@ -28,6 +28,12 @@ var CONT = {
 
 	// G谱号 标志常量
 	CLEF_G: 'G',
+	
+	// F谱号 标志常量
+	CLEF_F: 'F',
+	
+	// C谱号 标志常量
+	CLEF_C: 'C',
 
 	// G谱号中心点距顶部 与 G谱号高度的比值
 	CLEF_G_SPE: 0.64,
@@ -53,11 +59,6 @@ var CONT = {
 	// 连体音符 单独横线符尾的水平长度
 	NOTETAIL_SINGLE_LINE_LENGTH: 12.5,
 
-	// 升调符号
-	SHARP_KEY: '#',
-
-	// 降调符号
-	FLATS_KEY: 'b'
 };
 
 /* 路径 */
