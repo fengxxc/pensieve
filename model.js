@@ -85,6 +85,7 @@ Quill.prototype._drawNoteTail = function(x, y, isUpward) {
 		note = img_objs.note8TailRev;
 		oX = x - CONT.NOTE_HEAD_WIDTH;
 		oY = y;
+		console.log(note);
 	}
 	/* 将图片转成合适的尺寸 */
 	this.c.drawImage(note, oX, oY, w, h);
@@ -225,20 +226,18 @@ Quill.prototype.drawClef = function(x, y, type, color) {
 Quill.prototype.drawBarLine = function(x, y, width, color) {
 	this.drawLink2point(x, y, x, y + CONT.LINE_SPACE*4, width, color);
 };
-/* *
- * 画 升降符号
- * @param 横坐标，纵坐标，升降符号(string)
- */
 Quill.prototype.drawTransp = function(x, y, type) {
-	if (type == KEY_MAP.sharp) { // 升
+	if (type == CONT.SHARP_KEY) { // #
 		/* 将图片转成合适的尺寸 */
 		w = img_objs.sharp.width/4;
 		h = img_objs.sharp.height/4;
 		this.c.drawImage(img_objs.sharp, x-w, y-h/2, w, h);
-	} else if (type == KEY_MAP.flat) { // 降
+		// TODO
+	} else if (type == CONT.FLATS_KEY) { // b
 		/* 将图片转成合适的尺寸 */
 		w = img_objs.flats.width/4;
 		h = img_objs.flats.height/4;
 		this.c.drawImage(img_objs.flats, x-w, y-h/2, w, h);
+		// TODO
 	}
 };
