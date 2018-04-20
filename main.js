@@ -34,13 +34,13 @@ function parseAndRenderScore(s) {
 			xyEnter();
 		}
 		
-		var noteInfo = parseNoteCode(notes[i]);
+		var noteInfo = parseNoteGroupCode(notes[i]);
 		/* 1. fr(fraction) 是几分音符（包括符点），根据开头数字判断，若无则为4分音符 */
 		var fr = noteInfo.fraction;
 		/* 2. stepLength: 1/时值长度 */
 		var stepLength = noteInfo.stepLength;
-		/* 3.ma(musical alphabet) 音名，采用西方现代音乐标准命名法 */
-		var ma = noteInfo.musicalAlphabet;
+		/* 3.ma(musical alphabet) 音名数组，采用西方现代音乐标准命名法 */
+		var maGroup = noteInfo.musicalAlphabets;
 		/* 4. 有符点吗？*/
 		var hasPoint = noteInfo.hasPoint;
 		/* 5. 升降 1 or -1 or 0 */
@@ -50,7 +50,7 @@ function parseAndRenderScore(s) {
 		tempBar += (stepLength * timeBeat); 
 
 		/* 渲染一组最小单位块音符 */
-		renderStep(x_cur, y_def, fr, stepLength, ma, hasPoint, transp);
+		renderStep(x_cur, y_def, fr, stepLength, maGroup, hasPoint, transp);
 
 		/* x右移距离，主要根据音符时值fr而定 */
 		x_cur += CONT.TSG_SPACE * (stepLength * CONT.UNIT_NOTE);
@@ -64,67 +64,80 @@ function parseAndRenderScore(s) {
 	}
 
 	/* *
-	 * 渲染一组最小单位块音符
-	 * @param x坐标，y坐标，是几分音符，1/时值长度，音名，是否有符点，升降
+	 * 渲染一音符组
+	 * @param x坐标，y坐标，是几分音符，1/时值长度，音符组音名（数组），是否有符点，升降
 	 */
-	function renderStep(x, y, fr, stepLength, ma, hasPoint, transp) {
-		
-		var maPlace = getMaPlaceForG(ma); // 在G谱表上的位置
+	function renderStep(x, y, fr, stepLength, maGroup, hasPoint, transp) {
+		var maPlaceTop = null;
+		var maPlaceBot = null;
+		for (var i = 0; i < maGroup.length; i++) {
+			var maPlace = getMaPlaceForG(maGroup[i]); // 在G谱表上的位置
 
-		/* (〃'▽'〃) 要渲染音符了 */
-		// 判断是否要加线
-		if (maPlace <= 0 || 6 <= maPlace) {
-			// lineCont 加多少条线
-			var lineCont = maPlace <= 0? 0-Math.ceil(maPlace)+1 : maPlace-6+1;
-			// firstPlace 加线的初始位置
-			var firstPlace = maPlace <= 0? Math.ceil(maPlace) : 6;
-			for (var l = 0; l < lineCont; l++, firstPlace++) 
-				qu.drawline(x-CONT.TSG_SPACE/2, y-firstPlace*CONT.LINE_SPACE, CONT.TSG_SPACE, 1, CONT.LINE_SPACE, CONT.LINE_WIDTH, CONT.LINE_COLOR);
+			/* (〃'▽'〃) 要渲染音符了 */
+			// 判断是否要加线
+			if (maPlace <= 0 || 6 <= maPlace) {
+				// lineCont 加多少条线
+				var lineCont = maPlace <= 0? 0-Math.ceil(maPlace)+1 : maPlace-6+1;
+				// firstPlace 加线的初始位置
+				var firstPlace = maPlace <= 0? Math.ceil(maPlace) : 6;
+				for (var l = 0; l < lineCont; l++, firstPlace++) 
+					qu.drawline(x-CONT.TSG_SPACE/2, y-firstPlace*CONT.LINE_SPACE, CONT.TSG_SPACE, 1, CONT.LINE_SPACE, CONT.LINE_WIDTH, CONT.LINE_COLOR);
+			}
+
+			/* 1.画音符头 */
+			qu.drawNoteHead(x, y-maPlace*CONT.LINE_SPACE, fr);
+
+			/* 2.画升降符号 */
+			if (transp)
+				qu.drawTransp(x - CONT.NOTE_HEAD_WIDTH - 2, y-maPlace*CONT.LINE_SPACE, transp);
+		
+			/* 3.画符点 */
+			if (hasPoint) 
+				qu.drawPoint(x + CONT.DOT_LEFT, y-maPlace*CONT.LINE_SPACE, CONT.DOT_R, CONT.LINE_COLOR);
+			
+			// 这组音中最高音位置
+			if (i == 0) {
+				maPlaceTop = maPlaceBot = maPlace;
+			} else {
+				if (maPlace > maPlaceTop)
+					maPlaceTop = maPlace;
+				else if (maPlace < maPlaceBot)
+					maPlaceBot = maPlace;
+			}
+			
 		}
 
+
+		/* 4.处理符干和符尾 */
 		// 如果在画 时值 >= 单位音符（四分音符）的音符 之前仍有没画完符尾的音符，就画符尾
 		if (stepLength >= 1/CONT.UNIT_NOTE) {
 			if (tempXYFrs.length == 1) {
-				qu.drawNoteTails(tempXYFrs[0][0], tempXYFrs[0][1], tempXYFrs[0][2]);
+				qu.drawNoteTails(tempXYFrs[0].x, tempXYFrs[0].yMin, tempXYFrs[0].fr);
 			} else if (tempXYFrs.length > 1) {
-				qu.drawLinkLine(tempXYFrs);
+				qu.drawStemTailLine(tempXYFrs);
 			}
 			tempXYFrs = [];
 			tempHalf = 0;
 		}
-
-		// 画音符头
-		qu.drawNoteHead(x, y-maPlace*CONT.LINE_SPACE, fr);
 		// 时值自增
 		tempHalf += stepLength;
-		tempXYFrs.push([x, y-maPlace*CONT.LINE_SPACE, fr]);
-
-		/* 对于时值 < 单位音符时值（四分音符）的音符（如八分音符 ♫♪）*/
-		if (stepLength < 1/CONT.UNIT_NOTE) {
-			// 满单位音符的时长（最后一个未满音符） 则清零
-			if ( tempHalf == 1/CONT.UNIT_NOTE ) {
-				// 音符尾间连线，这是真正难且特殊的部分
-				qu.drawLinkLine(tempXYFrs);
-				tempXYFrs = [];
-				tempHalf = 0;
-			}
-		}
-		/* 对于时值 >= 单位音符（四分音符）的音符 */
-		else {
-			qu.drawLinkLine(tempXYFrs);
+		var coordModel = {
+			x: x, 
+			yMax: y-maPlaceBot*CONT.LINE_SPACE, 
+			yMin: y-maPlaceTop*CONT.LINE_SPACE,
+			fr: fr
+		};
+		// tempXYFrs.push([x, y-maPlaceTop*CONT.LINE_SPACE, fr]);
+		tempXYFrs.push(coordModel);
+		// 对于时值 < 单位音符时值（四分音符）的音符（如八分音符 ♫♪）
+		// && 对于时值 >= 单位音符（四分音符）的音符
+		// 画符尾连线
+		if ( !(stepLength < 1/CONT.UNIT_NOTE && tempHalf != 1/CONT.UNIT_NOTE) ) {
+			qu.drawStemTailLine(tempXYFrs);
 			tempXYFrs = [];
 			tempHalf = 0;
 		}
 
-		/* 画符点 */
-		if (hasPoint) 
-			qu.drawPoint(x + CONT.DOT_LEFT, y-maPlace*CONT.LINE_SPACE, CONT.DOT_R, CONT.LINE_COLOR);
-
-		/* 画升降符号 */
-		// console.log(transp);
-		if (transp) {
-			qu.drawTransp(x - CONT.NOTE_HEAD_WIDTH - 2, y-maPlace*CONT.LINE_SPACE, transp);
-		}
 	}
 
 	/* *
@@ -156,23 +169,24 @@ function parseAndRenderScore(s) {
  		transposition: -1
  	}
  */	
-function parseNoteCode(code) {
+function parseNoteGroupCode(code) {
 	var frArr = /^\d+\.?/.exec(code);
 	var fr = frArr? frArr[0] : '4';
 	var pt = (''+fr).search(/\./) > 0;
 	var sl = getStepLengthByFr(fr);
-	var ma = code.slice(frArr? frArr.index+frArr[0].length : 0);
-	var tp =  code.match(/#+$|b+$/) || [null];
+	var mas = code.slice(frArr? frArr.index+frArr[0].length : 0);
+	var tp =  code.match(new RegExp(KEY_MAP.sharp+'+$|'+KEY_MAP.flat+'+$')) || [null];
+	var maArr = mas.split(KEY_MAP.split.note);
 	return {
-		fraction: fr, 		// 几分音符 string
-		hasPoint: pt,		// 是否有符点 boolean
-		stepLength: sl, 	// 在谱上的物理长度 number
-		musicalAlphabet: ma,// 音名 string
-		transposition: tp[0] 	// 移调，升调1，降调-1，无0	
+		fraction: fr, 		 // 几分音符 string
+		hasPoint: pt,		 // 是否有符点 boolean
+		stepLength: sl, 	 // 在谱上的物理时值长度 number
+		musicalAlphabets: maArr, // 音名数组 array
+		transposition: tp[0] // 移调，升调1，降调-1，无0	
 	};
 }
 /* 
- * 根据几分音符 获得在谱上的物理长度
+ * 根据几分音符 获得在谱上的物理时值长度
  */
 function getStepLengthByFr(fr) {
 	if ( (''+fr).search(/\./) > 0 ) {
@@ -298,8 +312,9 @@ function render() {
  * 处理用户输入的代码
  */
 function parseInput(val) {
-	// 去首尾空格、将音符单元（同时音）切分成数组
-	return val.replace(/^\s+|\s+$/g, '').split(REG.SPL.UNIT) || [];
+	// 去首尾空格、将音组（同一时值上的一组音）切分成数组
+	// return val.replace(/^\s+|\s+$/g, '').split(REG.SPL.NOTE_GROUP) || [];
+	return val.replace(/^\s+|\s+$/g, '').split(KEY_MAP.split.note_group) || [];
 }
 
 function main() {

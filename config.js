@@ -38,7 +38,7 @@ var CONT = {
 	// 符干高
 	NOTEBODY_HEIGHT: 30,
 
-	// 符头宽 
+	// 符头宽/2 
 	NOTE_HEAD_WIDTH: 5,
 
 	// 连接符尾 横线宽度
@@ -51,7 +51,7 @@ var CONT = {
 	DOT_R: 1.5,
 
 	// 连体音符 单独横线符尾的水平长度
-	NOTETAIL_SINGLE_LINE_LENGTH: 12,
+	NOTETAIL_SINGLE_LINE_LENGTH: 12.5,
 
 	// 升调符号
 	SHARP_KEY: '#',
@@ -74,11 +74,17 @@ var SRC = {
 	FLATS: 'img/合适尺寸/降调.png',
 };
 
-/* 解析code的正则 */
-var REG = {
-	SPL: { // 分隔的正则
-		NOTE: /\//g,	// \ 	// 音符分隔
-		UNIT: /\s+/g,	// 空格 // 音符单元的分隔，即同一时值上的一组音
+/* key map */
+var KEY_MAP = {
+	split: { // 分隔的正则
+		// 音符分隔
+		note: /\//g, // '/' 	
+		// 音组分隔符，即同一时值上的一组音
+		note_group: /\s+/g,	// ' '
 
-	}
+	},
+	// 升音符
+	sharp: '#',
+	// 降音符
+	flat: 'b'
 };

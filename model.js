@@ -126,65 +126,72 @@ Quill.prototype.drawNoteTails = function(x, y, fr) {
 		this.drawNoteTail(x, y + k*CONT.NOTETAIL_LINKLINE_WIDTH*3);
 };
 /* *
- * 画 音符尾间连线
+ * 画 音符 符干 和 尾间连线
  * @param 坐标和时值的数组 [ [x, y, fr], [x2, y2, fr2], ... ]
+ * @param 符干是否朝上 Boolean；未传此参数则自动判断
  */
-Quill.prototype.drawLinkLine = function(xyf) {
+Quill.prototype.drawStemTailLine = function(xyf, isUpward) {
+	isUpward = false;
+	// 符干是否朝上参数 若未传，默认朝上
+	var isUp = isUpward !== undefined? isUpward : true;
+	var forward = isUp? 1 : -1;
 	// 第一个
 	var first = xyf[0];
-	// 画竖线 第一个音符的符干
-	var x = first[0]+5;
-	var y = first[1];
-	var y2 = y - CONT.NOTEBODY_HEIGHT;
-	this.drawLink2point(x, y, x, y2, 1, CONT.LINE_COLOR);
+	// 1.画竖线 第一个音符的符干
+	var x = isUp? first.x + CONT.NOTE_HEAD_WIDTH : first.x - CONT.NOTE_HEAD_WIDTH;
+	var y = isUp? first.yMax : first.yMin;
+	var yDist = first.yMax - first.yMin;
+	var yEnd = y - (CONT.NOTEBODY_HEIGHT + yDist)*forward; // yEnd为离符头最远端y轴坐标
+	var firstYEnd = yEnd;
+	this.drawLink2point(x, y, x, yEnd, 1, CONT.LINE_COLOR);
 	if (xyf.length == 1) return;
 
 	// 最后一个
 	var last = xyf[xyf.length-1];
-	// 正切值/2 （除以二是为了让倾斜度小一点，利于美观）
-	var tan = (first[1]-last[1]) / (last[0]-first[0]) /2;
+	// 正切值的绝对值/2 （除以二是为了让倾斜度小一点，利于美观）
+	var tan = ( (first.yMax+first.yMin)/2 - (last.yMax+last.yMin)/2 ) / (last.x-first.x) /2;
 
-
-	var lastX, lastY, lastY2, // 上一次遍历的x, y, y2
-		lastCount, count, endXOffset, endYOffset;	 
+	var lastX, lastY, lastYEnd  // 上一次遍历的x, y, yEnd
+		, lastCount, count
+		, shortLineStartX, shortLineEndX;	 
 	for (var i = 1; i < xyf.length; i++) {
 		lastX = x;
 		lastY = y;
-		lastY2 = y2; // 前一个音符最后一根相连横线的y坐标
+		lastYEnd = yEnd; // 前一个音符最后一根相连横线的y坐标
 		
-		/* 画竖线 符干 */
-		x = xyf[i][0]+5;
-		y = xyf[i][1];
-		y2 = xyf[0][1] - CONT.NOTEBODY_HEIGHT - (xyf[i][0]-xyf[0][0])*tan;
-		this.drawLink2point(x, y, x, y2, 1, CONT.LINE_COLOR);
+		/* 1.画竖线 符干 */
+		x = isUp? xyf[i].x + CONT.NOTE_HEAD_WIDTH : xyf[i].x - CONT.NOTE_HEAD_WIDTH;
+		y = isUp? xyf[i].yMax : xyf[i].yMin;
+		yDist = xyf[i].yMax - xyf[i].yMin;
+		yEnd = firstYEnd - (xyf[i].x-xyf[0].x)*tan;
+		this.drawLink2point(x, y, x, yEnd, 1, CONT.LINE_COLOR);
 
-		/* 画横线 尾间连线  */
-		// lastCount：前一个音符有几条横线; xyf[i-1][2]：前一个音符的fr
-		lastCount = Math.log(xyf[i-1][2]/8)/Math.log(2) + 1;
-		// count：当前音符有几条横线; xyf[i][2]：当前音符的fr
-		count = Math.log(xyf[i][2]/8)/Math.log(2) + 1;
+		/* 2.画横线 尾间连线  */
+		// lastCount：前一个音符有几条横线; xyf[i-1].fr：前一个音符的fr
+		lastCount = Math.log(xyf[i-1].fr/8)/Math.log(2) + 1; // 算log以2为底fr/8的对数
+		// count：当前音符有几条横线; xyf[i].fr：当前音符的fr
+		count = Math.log(xyf[i].fr/8)/Math.log(2) + 1;
 		// sub: 非最后一个音符：前一个音符多出来的横线；反之：后一个音符多出来的横线
 		var sub = lastCount-count;
 
 		/* 画与前一个音符相连的横线 */
 		var acroCount = Math.max(count, lastCount) - Math.abs(sub);
 		for (var j = 0; j < acroCount; j++) 
-			this.drawLink2point(lastX, lastY2 += j*CONT.NOTETAIL_LINKLINE_WIDTH*2, x, y2 + j*CONT.NOTETAIL_LINKLINE_WIDTH*2, CONT.NOTETAIL_LINKLINE_WIDTH, CONT.LINE_COLOR);
+			this.drawLink2point(lastX, lastYEnd += CONT.NOTETAIL_LINKLINE_WIDTH*2*j*forward, x, lastYEnd - (x - lastX)*tan, CONT.NOTETAIL_LINKLINE_WIDTH, CONT.LINE_COLOR);
 
 		/* 画前一个音符多出来的横线 */
-		endXOffset = (i == 1)? lastX + CONT.NOTETAIL_SINGLE_LINE_LENGTH/2 : lastX - CONT.NOTETAIL_SINGLE_LINE_LENGTH/2;
-		endYOffset = (i == 1)? lastY2+CONT.NOTETAIL_LINKLINE_WIDTH*2 - CONT.NOTETAIL_SINGLE_LINE_LENGTH/2 * tan : lastY2+CONT.NOTETAIL_LINKLINE_WIDTH*2 + CONT.NOTETAIL_SINGLE_LINE_LENGTH/2 * tan;
-
+		var isSecond = (i == 1)? 1 : -1; // 是第二个音符吗（第二个音符的横线是向右偏移，反之向左偏移）
+		shortLineStartX = (i == 1)? lastX : lastX - CONT.NOTETAIL_SINGLE_LINE_LENGTH/2;
+		shortLineEndX = shortLineStartX + CONT.NOTETAIL_SINGLE_LINE_LENGTH/2;
 		for (var k = 0; k < sub; k++) 
-			this.drawLink2point(lastX, lastY2+CONT.NOTETAIL_LINKLINE_WIDTH*2*(k+1), endXOffset, endYOffset + k*CONT.NOTETAIL_LINKLINE_WIDTH*2, CONT.NOTETAIL_LINKLINE_WIDTH, CONT.LINE_COLOR);
-		
+			this.drawLink2point(shortLineStartX, lastYEnd -= (shortLineStartX - lastX)*tan - CONT.NOTETAIL_LINKLINE_WIDTH*2*(k+1)*forward, shortLineEndX, lastYEnd - CONT.NOTETAIL_SINGLE_LINE_LENGTH/2*tan, CONT.NOTETAIL_LINKLINE_WIDTH, CONT.LINE_COLOR);
+			
 	}
 	/* 画最后一个音符多出来的横线 */
 	var endSub = count-lastCount;
-	endXOffset = (i == 1)? x + CONT.NOTETAIL_SINGLE_LINE_LENGTH/2 : x - CONT.NOTETAIL_SINGLE_LINE_LENGTH/2;
-	endYOffset = (i == 1)? y2+CONT.NOTETAIL_LINKLINE_WIDTH*2 - CONT.NOTETAIL_SINGLE_LINE_LENGTH/2 * tan : y2+CONT.NOTETAIL_LINKLINE_WIDTH*2 + CONT.NOTETAIL_SINGLE_LINE_LENGTH/2 * tan;
+	shortLineStartX = x - CONT.NOTETAIL_SINGLE_LINE_LENGTH/2;
 	for (var m = 0; m < endSub; m++) 
-		this.drawLink2point(x, y2+CONT.NOTETAIL_LINKLINE_WIDTH*2*(m+1), endXOffset, endYOffset + m*CONT.NOTETAIL_LINKLINE_WIDTH*2, CONT.NOTETAIL_LINKLINE_WIDTH, CONT.LINE_COLOR);
+		this.drawLink2point(shortLineStartX, lastYEnd -= (shortLineStartX - lastX)*tan - CONT.NOTETAIL_LINKLINE_WIDTH*2*(m+1)*forward, x, lastYEnd - CONT.NOTETAIL_SINGLE_LINE_LENGTH/2*tan, CONT.NOTETAIL_LINKLINE_WIDTH, CONT.LINE_COLOR);
 };
 /* *
  * 画 谱号
