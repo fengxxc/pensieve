@@ -12,16 +12,16 @@ var checkClef = document.getElementsByClassName('checkClef');
 
 // ========================渲染方法 start======================
 function parseAndRenderScore(s) {
-	var qu = new Quill(ctx);
-	// 当前行下加一线的y坐标，初始在第负一行
-	var y_def = CONT.TOP_PADDING + CONT.LINE_SPACE*5;
-	// 当前行x坐标，初始在第一行最左
-	var x_cur = CONT.LEFT_PADDING;
-
 	var clefArr = s.clef;
 	var timeBar = parseInt(s.timeSignature.split('/')[0]); // 每小节有几拍
 	var timeBeat = parseInt(s.timeSignature.split('/')[1]); // 几分音符为一拍
 	var notes = s.notes; // 乐谱正文
+
+	var qu = new Quill(ctx);
+	// 当前行下加一线的y坐标，初始在第负一行
+	var y_def = CONT.TOP_PADDING + CONT.LINE_SPACE*5 - clefArr.length*CONT.ROW_SPACE;
+	// 当前行x坐标，初始在第一行最左
+	var x_cur = CONT.LEFT_PADDING;
 
 	/* 清画布 */
 	ctx.clearRect(0, 0, paperWidth, paperHeight);
@@ -33,9 +33,8 @@ function parseAndRenderScore(s) {
 	for (var i = 0; i < notes.length; i++) {
 
 		/* 第一个音符 或 一行超出 就换行并渲染五线谱 */
-		if (i == 0 || x_cur > (paperWidth-CONT.LEFT_PADDING) ) {
-			xyEnter(clefArr[0]); // TODO
-		}
+		if (i == 0 || x_cur > (paperWidth-CONT.LEFT_PADDING) )
+			rowEnter(clefArr);
 		
 		var noteInfo = parseNoteGroupCode(notes[i]);
 		/* 1. fr(fraction) 是几分音符（包括符点），根据开头数字判断，若无则为4分音符 */
@@ -43,7 +42,7 @@ function parseAndRenderScore(s) {
 		/* 2. stepLength: 1/时值长度 */
 		var stepLength = noteInfo.stepLength;
 		/* 3.ma(musical alphabet) 音名数组，采用西方现代音乐标准命名法 */
-		var maGroup = noteInfo.musicalAlphabets;
+		var maGroup = noteInfo.musicalAlphabets; // like this: ['f4#', 'c5']
 		/* 4. 有符点吗？*/
 		var hasPoint = noteInfo.hasPoint;
 
@@ -73,6 +72,8 @@ function parseAndRenderScore(s) {
 		var maPlaceBot = null;
 		for (var i = 0; i < maGroup.length; i++) {
 			var maPlace = getMaPlace(maGroup[i], clefArr[0]); // 在G谱表上的位置 TODO
+			// var maPlace = getMaPlaceAuto(maGroup[i], clefArr); // 在G谱表上的位置 TODO
+			if (!maPlace) continue;
 
 			/* (〃'▽'〃) 要渲染音符了 */
 			// 判断是否要加线
@@ -145,17 +146,28 @@ function parseAndRenderScore(s) {
 
 	/* *
 	 * 绘图坐标换行 并画下一行的五线谱
+	 * @param 谱号array
 	 */
-	function xyEnter(clefType) {
-		y_def += CONT.ROW_SPACE;
-		x_cur = CONT.LEFT_PADDING;
-		qu.drawline(x_cur, y_def - CONT.LINE_SPACE*5, paperWidth-CONT.LEFT_PADDING*2, 5, CONT.LINE_SPACE, CONT.LINE_WIDTH, CONT.LINE_COLOR);
-		// 画 行开头的竖线
-		qu.drawBarLine(x_cur, y_def - CONT.LINE_SPACE*5, CONT.LINE_WIDTH, CONT.LINE_COLOR);
-		x_cur += CONT.TSG_SPACE/2;
-		// 画 谱号
-		qu.drawClef(x_cur, y_def, clefType, CONT.LINE_COLOR);
-		x_cur += CONT.CLEF_SPACE;
+	function rowEnter(clefs) {
+		// n种谱号
+		var n = clefs.length;
+		// y_def 去往下一行的首行
+		y_def += CONT.ROW_SPACE * (n-1);
+		for (var i = 0; i < n; i++) {			
+			y_def += CONT.ROW_SPACE;
+			x_cur = CONT.LEFT_PADDING;
+			qu.drawline(x_cur, y_def - CONT.LINE_SPACE*5, paperWidth-CONT.LEFT_PADDING*2, 5, CONT.LINE_SPACE, CONT.LINE_WIDTH, CONT.LINE_COLOR);
+			// 画 行开头的竖线
+			qu.drawBarLine(x_cur, y_def - CONT.LINE_SPACE*5, CONT.LINE_WIDTH, CONT.LINE_COLOR);
+			// 向右偏移： 行开头竖线 至 谱号 的距离
+			x_cur += CONT.TSG_SPACE/2;
+			// 画 谱号
+			qu.drawClef(x_cur, y_def, clefs[i], CONT.LINE_COLOR);
+			// 向右偏移： 谱号 至 音符 的距离
+			x_cur += CONT.CLEF_SPACE;
+		}
+		// y_def 回到本轮绘制的首行
+		y_def -= CONT.ROW_SPACE * (n-1);
 	}
 	
 }
@@ -197,39 +209,44 @@ function getStepLengthByFr(fr) {
 	}
 }
 /* *
- * 根据音名 获得所在五线谱（G谱表）上的位置
- * G谱表五线谱位置表示如下：(1间为1线+0.5，即1.5，以此类推)
- * 5线 -----------5
- * ......
- * 2线 ---------2
- * 1线 -------1
- * 下加一线：0
- * 下加二线：-1
+ * 根据音名和谱号 获得在五线谱上的位置
+ * @param 音名
+ * @param 谱号类型
  */
 function getMaPlace(ma, type) { // 如：ma = 'f5#'
-
-	// G谱表音名与谱表位置的映射关系，如：C4就是c[4]
-	var g_ma2sc = {
-		//	  0		 1	    2	  3	    4	 5	  6	   7   8	
-		'c': [null,  -10.5, -7,   -3.5, 0,  3.5, 7,   7,  10.5],
-		'd': [null,  -10,   -6.5, -3,   0.5, 4,   7.5, 7.5	  ],
-		'e': [null,  -9.5,  -6,   -2.5, 1,   4.5, 8,   8	  ],
-		'f': [null,  -9,    -5.5, -2,   1.5, 5,   8.5, 8.5	  ],
-		'g': [null,  -8.5,  -5,	  -1.5, 2,	 5.5, 9,   9	  ],
-		'a': [-11.5, -8,	-4.5, -1,	2.5, 6,	  9.5, 9.5	  ],
-		'b': [-11,	 -7.5,	-4,	  -0.5,	3,	 6.5, 10,  10	  ]
-	};
-
 	var ma1 = ma.slice(0, 1); // 'f'
 	var ma2 = parseInt( ma.slice(1).match(/^\d*/) ); // '5'
 	var place = 0;
-	if (!ma1 || ! ma2) place = 3;
-	else place = g_ma2sc[ma1][ma2];
+	if (!ma1 || !ma2) place = 3;
+	else place = CONT.G_MA2SC[ma1][ma2];
 	if (type == CONT.CLEF_F)
 		place += 6;
 	if (type == CONT.CLEF_C)
 		place += 3;
 	return place; // 5
+}
+/* *
+ * 根据音名和支持的谱号 自动获得在五线谱上的位置
+ * @param 
+ * @param 
+ */
+function getMaPlaceAuto(ma, types) {
+	// n种谱号
+	var n = types.length;
+	if (n == 0) {
+		console.err('请至少选择一种谱号');
+		return;
+	}
+	if (n == 1) {
+		return getMaPlace(ma, types[0]);
+	}
+	var place = getMaPlace(ma, types[0]);
+	if (place <= 0 || place > 6) {
+		for (var i = 1; i < n; i++) {
+			
+		}
+	}
+	// TODO
 }
 /* *
  * 根据基准y坐标 和音符位置 获得音符y坐标
@@ -238,6 +255,22 @@ function getMaPlace(ma, type) { // 如：ma = 'f5#'
  */
 function getY(baseY, maplace) {
 	return baseY - maplace*CONT.LINE_SPACE;
+}
+
+/* * 
+ * 比较两个音名的大小，高音大低音小
+ * @param 第一个音名，第二个音名
+ * return ma1 < ma2 返回<0；ma1 > ma2 返回>0；相等返回0
+ */
+function compareNoteName(ma1, ma2) {
+	var weight = {
+		'c':1, 'd':2, 'e':3, 'f':4, 'g':5, 'a':6, 'b':7
+	};
+	var w1 = parseInt(ma1.match(/\d/)[0])*10 + weight[ ma1.match(/^[a-g,A-G]/)[0] ];
+	var w2 = parseInt(ma2.match(/\d/)[0])*10 + weight[ ma2.match(/^[a-g,A-G]/)[0] ];
+	console.log(w1);
+	console.log(w2);
+	return w1 - w2;
 }
 
 // ========================渲染方法 end========================
