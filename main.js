@@ -71,9 +71,10 @@ function parseAndRenderScore(s) {
 		var maPlaceTop = null;
 		var maPlaceBot = null;
 		for (var i = 0; i < maGroup.length; i++) {
-			var maPlace = getMaPlace(maGroup[i], clefArr[0]); // 在G谱表上的位置 TODO
-			// var maPlace = getMaPlaceAuto(maGroup[i], clefArr); // 在G谱表上的位置 TODO
-			if (!maPlace) continue;
+			var maPlace = getMaPlace(maGroup[i], clefArr[0]); // 在谱表上的位置 TODO
+			// var maPlace = getMaPlaceAuto(maGroup[i], clefArr); // 在多谱表上的位置 TODO
+			
+			if (maPlace == null) continue;
 
 			/* (〃'▽'〃) 要渲染音符了 */
 			// 判断是否要加线
@@ -215,10 +216,10 @@ function getStepLengthByFr(fr) {
  */
 function getMaPlace(ma, type) { // 如：ma = 'f5#'
 	var ma1 = ma.slice(0, 1); // 'f'
-	var ma2 = parseInt( ma.slice(1).match(/^\d*/) ); // '5'
-	var place = 0;
-	if (!ma1 || !ma2) place = 3;
-	else place = CONT.G_MA2SC[ma1][ma2];
+	var ma2 = ma.slice(1).match(/^\d*/); // '5'
+	if (!ma1 || !ma2[0]) return null;
+	var place = CONT.G_MA2SC[ma1][parseInt(ma2)];
+	if (place == null) return null;
 	if (type == CONT.CLEF_F)
 		place += 6;
 	if (type == CONT.CLEF_C)
@@ -228,7 +229,7 @@ function getMaPlace(ma, type) { // 如：ma = 'f5#'
 /* *
  * 根据音名和支持的谱号 自动获得在五线谱上的位置
  * @param 
- * @param 
+ * @param 谱号类型 ['G', 'F', 'C']
  */
 function getMaPlaceAuto(ma, types) {
 	// n种谱号
@@ -240,12 +241,17 @@ function getMaPlaceAuto(ma, types) {
 	if (n == 1) {
 		return getMaPlace(ma, types[0]);
 	}
-	var place = getMaPlace(ma, types[0]);
-	if (place <= 0 || place > 6) {
+	var place = getMaPlace(ma, types.shift());
+	for (var i = 0; i < types.length; i++) {
+		if (place <= 0 || place > 6) {
+			place = getMaPlace(ma, types.shift());
+		}
+	}
+	/*if (place <= 0 || place > 6) {
 		for (var i = 1; i < n; i++) {
 			
 		}
-	}
+	}*/
 	// TODO
 }
 /* *
