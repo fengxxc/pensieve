@@ -1,9 +1,4 @@
-var paper = document.getElementById('musicPaper');
 var ctx = paper.getContext('2d');
-var paperWidth = paper.clientWidth;
-// var paperWidth = 861;
-var paperHeight = paper.clientHeight;
-// var paperHeight = 600;
 
 var inputTs = document.getElementById('inputTs');
 var inputArea = document.getElementById('inputArea');
@@ -19,7 +14,7 @@ function parseAndRenderScore(s) {
 
 	var qu = new Quill(ctx);
 	// 当前行下加一线的y坐标，初始在第负一行
-	var y_def = CONT.TOP_PADDING + CONT.LINE_SPACE*5 - clefArr.length*CONT.ROW_SPACE;
+	var y_def = CONT.TOP_PADDING + CONT.LINE_SPACE*5 - clefArr.length*CONT.ROW_SPACE();
 	// 当前行x坐标，初始在第一行最左
 	var x_cur = CONT.LEFT_PADDING;
 
@@ -53,11 +48,11 @@ function parseAndRenderScore(s) {
 		renderStep(x_cur, y_def, fr, stepLength, maGroup, hasPoint, clefArr);
 
 		/* x右移距离，主要根据音符时值fr而定 */
-		x_cur += CONT.TSG_SPACE * (stepLength * CONT.UNIT_NOTE);
+		x_cur += CONT.TSG_SPACE() * (stepLength * CONT.UNIT_NOTE);
 
 		/* 如果一小节完毕，画小节线 */
 		if (tempBar >= timeBar) {
-			qu.drawBarLine(x_cur - CONT.TSG_SPACE/2, y_def - CONT.LINE_SPACE*5, CONT.LINE_WIDTH, CONT.LINE_COLOR);
+			qu.drawBarLine(x_cur - CONT.TSG_SPACE()/2, y_def - CONT.LINE_SPACE*5, CONT.LINE_WIDTH, CONT.LINE_COLOR);
 			tempBar = 0;
 		}
 
@@ -71,8 +66,8 @@ function parseAndRenderScore(s) {
 		var maPlaceTop = null;
 		var maPlaceBot = null;
 		for (var i = 0; i < maGroup.length; i++) {
-			var maPlace = getMaPlace(maGroup[i], clefArr[0]); // 在谱表上的位置 TODO
-			// var maPlace = getMaPlaceAuto(maGroup[i], clefArr); // 在多谱表上的位置 TODO
+			// var maPlace = getMaPlace(maGroup[i], clefArr[0]); // 在谱表上的位置 TODO
+			var maPlace = getMaPlaceAuto(maGroup[i], clefArr); // 在多谱表上的位置 TODO
 			
 			if (maPlace == null) continue;
 
@@ -84,7 +79,7 @@ function parseAndRenderScore(s) {
 				// firstPlace 加线的初始位置
 				var firstPlace = maPlace <= 0? Math.ceil(maPlace) : 6;
 				for (var l = 0; l < lineCont; l++, firstPlace++) 
-					qu.drawline(x-CONT.TSG_SPACE/2, y-firstPlace*CONT.LINE_SPACE, CONT.TSG_SPACE, 1, CONT.LINE_SPACE, CONT.LINE_WIDTH, CONT.LINE_COLOR);
+					qu.drawline(x-CONT.TSG_SPACE()/2, y-firstPlace*CONT.LINE_SPACE, CONT.TSG_SPACE(), 1, CONT.LINE_SPACE, CONT.LINE_WIDTH, CONT.LINE_COLOR);
 			}
 
 			/* 1.画音符头 */
@@ -153,22 +148,22 @@ function parseAndRenderScore(s) {
 		// n种谱号
 		var n = clefs.length;
 		// y_def 去往下一行的首行
-		y_def += CONT.ROW_SPACE * (n-1);
+		y_def += CONT.ROW_SPACE() * (n-1);
 		for (var i = 0; i < n; i++) {			
-			y_def += CONT.ROW_SPACE;
+			y_def += CONT.ROW_SPACE();
 			x_cur = CONT.LEFT_PADDING;
 			qu.drawline(x_cur, y_def - CONT.LINE_SPACE*5, paperWidth-CONT.LEFT_PADDING*2, 5, CONT.LINE_SPACE, CONT.LINE_WIDTH, CONT.LINE_COLOR);
 			// 画 行开头的竖线
 			qu.drawBarLine(x_cur, y_def - CONT.LINE_SPACE*5, CONT.LINE_WIDTH, CONT.LINE_COLOR);
 			// 向右偏移： 行开头竖线 至 谱号 的距离
-			x_cur += CONT.TSG_SPACE/2;
+			x_cur += CONT.TSG_SPACE()/2;
 			// 画 谱号
 			qu.drawClef(x_cur, y_def, clefs[i], CONT.LINE_COLOR);
 			// 向右偏移： 谱号 至 音符 的距离
 			x_cur += CONT.CLEF_SPACE;
 		}
 		// y_def 回到本轮绘制的首行
-		y_def -= CONT.ROW_SPACE * (n-1);
+		y_def -= CONT.ROW_SPACE() * (n-1);
 	}
 	
 }
@@ -235,18 +230,30 @@ function getMaPlaceAuto(ma, types) {
 	// n种谱号
 	var n = types.length;
 	if (n == 0) {
-		console.err('请至少选择一种谱号');
+		console.error('请至少选择一种谱号');
 		return;
 	}
 	if (n == 1) {
 		return getMaPlace(ma, types[0]);
 	}
-	var place = getMaPlace(ma, types.shift());
+	/*var type = types.shift();
+	var place = getMaPlace(ma, type);
 	for (var i = 0; i < types.length; i++) {
 		if (place <= 0 || place > 6) {
-			place = getMaPlace(ma, types.shift());
+			type = types.shift();
+			place = getMaPlace(ma, type);
+		}
+	}*/
+	// var type = types[0];
+	// var place = getMaPlace(ma, type);
+	var place = null;
+	for (var i = 0; i < types.length; i++) {
+		place = getMaPlace(ma, types[i]);
+		if (place >= 0 && place <= 6) {
+			break;
 		}
 	}
+	return place;
 	/*if (place <= 0 || place > 6) {
 		for (var i = 1; i < n; i++) {
 			

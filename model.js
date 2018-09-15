@@ -258,3 +258,39 @@ Quill.prototype.drawTransp = function(x, y, type) {
 		this.c.drawImage(img_objs.flats, x-w, y-h/2, w, h);
 	}
 };
+
+/* *
+ * 音符对象
+ * createTime: 2018-5-25 15:31:43
+ */
+function Note(d, a, p) {
+	/* 音符基本信息 */
+	// 时值；如4分音符，表示：4
+	var _d = d,
+	// 音名；如C4，表示'c4'
+		_a = a,
+	// 是否有符点；是：true，否：false
+		_p = p;
+
+	// 时间上 占小节长度的比值；如符点8分音符，表示：1/12
+	var _r = _p? 1/(_d+_d/2) : 1/_d;
+	return {
+		duration: _d, // 时值
+		alphabet: _a, // 音名
+		hasPoint: _p, // 是否有符点
+
+		ratioOfBar: _r // 时间上 占小节长度的比值
+	};
+}
+
+function stepNotesFactory(code) {
+	var narr = [];
+	var frArr = /^\d+\.?/.exec(code);
+	var d = frArr? frArr[0] : '4';
+	var p = (''+d).search(/\./) > 0;
+	var as = code.slice(frArr? frArr.index+frArr[0].length : 0);
+	var aArr = as.split(KEY_MAP.split.note);
+	for (var i = 0; i < aArr.length; i++) {
+		narr.push(Note(d, aArr[i], p));
+	}
+}

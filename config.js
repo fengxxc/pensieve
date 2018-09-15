@@ -1,6 +1,17 @@
+var paper = document.getElementById('musicPaper');
+var paperWidth = paper.clientWidth;
+// var paperWidth = 861;
+var paperHeight = paper.clientHeight;
+// var paperHeight = 600;
 
 /* 全局常量 */
 var CONT = {
+	// canvas宽
+	W: paperWidth,
+
+	// canvas高
+	H: paperHeight,
+
 	// 上页边距 px
 	TOP_PADDING:40.5,
 
@@ -11,7 +22,10 @@ var CONT = {
 	LINE_SPACE: 10,
 
 	// 五线谱各行间距 px
-	ROW_SPACE: 80,
+	// ROW_SPACE: 80,
+	ROW_SPACE: function () {
+		return this.LINE_SPACE * 4 * 2;
+	},
 
 	// 五线谱线颜色
 	LINE_COLOR: 'black',
@@ -19,12 +33,15 @@ var CONT = {
 	// 五线谱一条线宽
 	LINE_WIDTH: 1,
 
-	// 拍间距（四分音符间距）
-	// 左页边距 + 谱号至音符的距离 + 拍间距*4(每小节4拍，共4个间隔)*一行小节数 + 左页边距 = canvas宽
-	TSG_SPACE: 56, 
-
 	// 每行行首 谱号 至 音符 的距离
 	CLEF_SPACE: 40,
+
+	// 拍间距（四分音符间距）
+	// TSG_SPACE: 56, 
+	TSG_SPACE: function () {
+		// 左页边距 + 谱号至音符的距离 + 拍间距*4(每小节4拍，共4个间隔)*一行小节数 + 左页边距 = canvas宽
+		return (this.W - this.LEFT_PADDING*2 - this.CLEF_SPACE)/4/4;
+	},
 
 	// G谱号 标志常量
 	CLEF_G: 'G',
